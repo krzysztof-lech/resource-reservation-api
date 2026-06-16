@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ResourceReservation.Api.Data;
 using ResourceReservation.Api.Models;
+using ResourceReservation.Api.Dtos;
 
 namespace ResourceReservation.Api.Controllers;
 
@@ -16,66 +17,54 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
+    public async Task<ActionResult<IEnumerable<CategoryReadDto>>> GetCategories()
     {
         var categories = await _context.Categories
-            .Include(c => c.Resources)
             .AsNoTracking()
             .ToListAsync();
 
-        foreach (var c in categories)
-        {
-            foreach (var r in c.Resources)
-            {
-                r.Category = null;
-            }
-        }
-
-        return Ok(categories);
+        var dtos = categories.Select(c => c.ToReadDto());
+        return Ok(dtos);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Category>> GetCategory(int id)
+    public async Task<ActionResult<CategoryReadDto>> GetCategory(int id)
     {
         var category = await _context.Categories
-            .Include(c => c.Resources)
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (category is null)
             return NotFound();
 
-        foreach (var r in category.Resources)
-            r.Category = null;
-
-        return Ok(category);
+        return Ok(category.ToReadDto());
     }
 
     [HttpPost]
-    public async Task<ActionResult<Category>> CreateCategory([FromBody] Category category)
+    public async Task<ActionResult<CategoryReadDto>> CreateCategory([FromBody] CategoryCreateDto dto)
     {
-        if (category is null)
+        if (dto is null)
             return BadRequest();
+
+        var category = dto.ToEntity();
 
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
 
-        category.Resources = new List<Resource>();
-
-        return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
+        return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category.ToReadDto());
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateCategory(int id, [FromBody] Category category)
+    public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryUpdateDto dto)
     {
-        if (category is null || id != category.Id)
+        if (dto is null)
             return BadRequest();
 
         var existing = await _context.Categories.FindAsync(id);
         if (existing is null)
             return NotFound();
 
-        existing.Name = category.Name;
+        existing.ApplyUpdates(dto);
         await _context.SaveChangesAsync();
 
         return NoContent();
@@ -90,7 +79,6 @@ public class CategoriesController : ControllerBase
 
         _context.Categories.Remove(existing);
         await _context.SaveChangesAsync();
-
         return NoContent();
     }
 }

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ResourceReservation.Api.Data;
 using ResourceReservation.Api.Models;
+using ResourceReservation.Api.Dtos;
 
 namespace ResourceReservation.Api.Controllers;
 
@@ -17,34 +18,38 @@ public class ResourcesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Resource>>> GetResources()
+    public async Task<ActionResult<IEnumerable<ResourceReadDto>>> GetResources()
     {
         var resources = await _context.Resources
             .Include(r => r.Category)
+            .AsNoTracking()
             .ToListAsync();
 
-        return Ok(resources);
+        var dtos = resources.Select(r => r.ToReadDto());
+        return Ok(dtos);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Resource>> GetResource(Guid id)
+    public async Task<ActionResult<ResourceReadDto>> GetResource(Guid id)
     {
         var resource = await _context.Resources
             .Include(r => r.Category)
+            .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == id);
 
         if (resource is null)
             return NotFound();
 
-        return Ok(resource);
+        return Ok(resource.ToReadDto());
     }
 
     [HttpPost]
-    public async Task<ActionResult<Resource>> CreateResource(Resource resource)
+    public async Task<ActionResult<ResourceReadDto>> CreateResource(ResourceCreateDto dto)
     {
-        if (resource == null)
+        if (dto == null)
             return BadRequest();
 
+        var resource = dto.ToEntity();
         resource.Id = resource.Id == Guid.Empty ? Guid.NewGuid() : resource.Id;
 
         if (resource.AllowedDays != null && resource.AllowedDays.Any())
@@ -55,30 +60,24 @@ public class ResourcesController : ControllerBase
         _context.Resources.Add(resource);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetResource), new { id = resource.Id }, resource);
+        return CreatedAtAction(nameof(GetResource), new { id = resource.Id }, resource.ToReadDto());
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateResource(Guid id, Resource resource)
+    public async Task<IActionResult> UpdateResource(Guid id, [FromBody] ResourceUpdateDto dto)
     {
-        if (resource == null || id != resource.Id)
+        if (dto == null)
             return BadRequest();
 
         var existing = await _context.Resources.FindAsync(id);
         if (existing is null)
             return NotFound();
 
-        existing.Name = resource.Name;
-        existing.Description = resource.Description;
-        existing.IsAvailable = resource.IsAvailable;
-        existing.SlotDurationMinutes = resource.SlotDurationMinutes;
-        existing.AvailableFrom = resource.AvailableFrom;
-        existing.AvailableTo = resource.AvailableTo;
-        existing.CategoryId = resource.CategoryId;
+        existing.ApplyUpdates(dto);
 
-        if (resource.AllowedDays != null)
+        if (existing.AllowedDays != null && existing.AllowedDays.Any())
         {
-            existing.AllowedDays = resource.AllowedDays;
+            existing.AllowedDaysRaw = string.Join(",", existing.AllowedDays);
         }
 
         await _context.SaveChangesAsync();

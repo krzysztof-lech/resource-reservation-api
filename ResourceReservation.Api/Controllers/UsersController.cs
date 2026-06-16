@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ResourceReservation.Api.Data;
-using ResourceReservation.Api.Models;
-using ResourceReservation.Api.Security;
+using ResourceReservation.Api.Dtos;
 
 namespace ResourceReservation.Api.Controllers;
 [ApiController]
@@ -16,19 +15,18 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+    public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers()
     {
         var users = await _context.Users
             .AsNoTracking()
             .ToListAsync();
 
-        users.ForEach(u => u.PasswordHash = string.Empty);
-
-        return Ok(users);
+        var dtos = users.Select(u => u.ToReadDto());
+        return Ok(dtos);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<User>> GetUser(Guid id)
+    public async Task<ActionResult<UserReadDto>> GetUser(Guid id)
     {
         var user = await _context.Users
             .AsNoTracking()
@@ -37,60 +35,41 @@ public class UsersController : ControllerBase
         if (user is null)
             return NotFound();
 
-        user.PasswordHash = string.Empty;
-        return Ok(user);
+        return Ok(user.ToReadDto());
     }
 
     [HttpPost]
-    public async Task<ActionResult<User>> CreateUser([FromBody] User user)
+    public async Task<ActionResult<UserReadDto>> CreateUser([FromBody] UserCreateDto dto)
     {
-        if (user is null)
+        if (dto is null)
             return BadRequest();
 
-        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+        if (string.IsNullOrWhiteSpace(dto.Password))
             return BadRequest("Password is required.");
 
-        var exists = await _context.Users.AnyAsync(u => u.Email == user.Email);
+        var exists = await _context.Users.AnyAsync(u => u.Email == dto.Email);
         if (exists)
             return Conflict("A user with the same email already exists.");
 
-        user.Id = user.Id == Guid.Empty ? Guid.NewGuid() : user.Id;
-        user.CreatedAt = DateTime.UtcNow;
-
-        user.PasswordHash = PasswordHasher.IsHashedFormat(user.PasswordHash)
-            ? user.PasswordHash
-            : PasswordHasher.HashPassword(user.PasswordHash);
+        var user = dto.ToEntity();
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        _context.Entry(user).State = EntityState.Detached;
-
-        user.PasswordHash = string.Empty;
-        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
+        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user.ToReadDto());
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] User user)
+    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UserUpdateDto dto)
     {
-        if (user is null || id != user.Id)
+        if (dto is null)
             return BadRequest();
 
         var existing = await _context.Users.FindAsync(id);
         if (existing is null)
             return NotFound();
 
-        existing.FirstName = user.FirstName;
-        existing.LastName = user.LastName;
-        existing.Email = user.Email;
-        existing.Role = user.Role;
-
-        if (!string.IsNullOrWhiteSpace(user.PasswordHash))
-        {
-            existing.PasswordHash = PasswordHasher.IsHashedFormat(user.PasswordHash)
-                ? user.PasswordHash
-                : PasswordHasher.HashPassword(user.PasswordHash);
-        }
+        existing.ApplyUpdates(dto);
 
         await _context.SaveChangesAsync();
         return NoContent();
