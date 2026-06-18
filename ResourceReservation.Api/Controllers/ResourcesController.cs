@@ -16,6 +16,7 @@ public class ResourcesController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ResourceReadDto>))]
     public async Task<ActionResult<IEnumerable<ResourceReadDto>>> GetResources()
     {
         var resources = await _resourceService.GetAllAsync();
@@ -23,6 +24,8 @@ public class ResourcesController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ResourceReadDto))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ResourceReadDto>> GetResource(Guid id)
     {
         var resource = await _resourceService.GetByIdAsync(id);
@@ -31,6 +34,8 @@ public class ResourcesController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ResourceReadDto))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ResourceReadDto>> CreateResource(ResourceCreateDto dto)
     {
         if (dto == null)
@@ -41,6 +46,9 @@ public class ResourcesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateResource(Guid id, [FromBody] ResourceUpdateDto dto)
     {
         if (dto == null)
@@ -52,6 +60,8 @@ public class ResourcesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteResource(Guid id)
     {
         var ok = await _resourceService.DeleteAsync(id);

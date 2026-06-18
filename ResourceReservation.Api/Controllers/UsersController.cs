@@ -17,6 +17,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<UserReadDto>))]
     public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers()
     {
         var users = await _userService.GetAllAsync();
@@ -24,6 +25,8 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(UserReadDto))]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserReadDto>> GetUser(Guid id)
     {
         var user = await _userService.GetByIdAsync(id);
@@ -32,6 +35,9 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(UserReadDto))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<UserReadDto>> CreateUser([FromBody] UserCreateDto dto)
     {
         if (dto is null)
@@ -49,6 +55,9 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UserUpdateDto dto)
     {
         if (dto is null)
@@ -62,6 +71,8 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
         var ok = await _userService.DeleteAsync(id);
