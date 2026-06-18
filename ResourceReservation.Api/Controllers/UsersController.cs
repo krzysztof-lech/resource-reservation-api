@@ -2,40 +2,33 @@
 using Microsoft.EntityFrameworkCore;
 using ResourceReservation.Api.Data;
 using ResourceReservation.Api.Dtos;
+using ResourceReservation.Api.Services.Interfaces;
 
 namespace ResourceReservation.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
-    private readonly AppDbContext _context;
-    public UsersController(AppDbContext context)
+    private readonly IUserService _userService;
+
+    public UsersController(IUserService userService)
     {
-        _context = context;
+        _userService = userService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers()
     {
-        var users = await _context.Users
-            .AsNoTracking()
-            .ToListAsync();
-
-        var dtos = users.Select(u => u.ToReadDto());
-        return Ok(dtos);
+        var users = await _userService.GetAllAsync();
+        return Ok(users);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<UserReadDto>> GetUser(Guid id)
     {
-        var user = await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == id);
-
-        if (user is null)
-            return NotFound();
-
-        return Ok(user.ToReadDto());
+        var user = await _userService.GetByIdAsync(id);
+        if (user is null) return NotFound();
+        return Ok(user);
     }
 
     [HttpPost]
@@ -47,16 +40,12 @@ public class UsersController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Password))
             return BadRequest("Password is required.");
 
-        var exists = await _context.Users.AnyAsync(u => u.Email == dto.Email);
-        if (exists)
+        var created = await _userService.CreateAsync(dto);
+
+        if (created is null)
             return Conflict("A user with the same email already exists.");
 
-        var user = dto.ToEntity();
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user.ToReadDto());
+        return CreatedAtAction(nameof(GetUser), new { id = created.Id }, created);
     }
 
     [HttpPut("{id}")]
@@ -65,25 +54,19 @@ public class UsersController : ControllerBase
         if (dto is null)
             return BadRequest();
 
-        var existing = await _context.Users.FindAsync(id);
-        if (existing is null)
+        var ok = await _userService.UpdateAsync(id, dto);
+        if (!ok)
             return NotFound();
 
-        existing.ApplyUpdates(dto);
-
-        await _context.SaveChangesAsync();
         return NoContent();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
-        var existing = await _context.Users.FindAsync(id);
-        if (existing is null)
+        var ok = await _userService.DeleteAsync(id);
+        if (!ok)
             return NotFound();
-
-        _context.Users.Remove(existing);
-        await _context.SaveChangesAsync();
         return NoContent();
     }
 }

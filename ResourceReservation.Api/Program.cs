@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ResourceReservation.Api.Data;
+using ResourceReservation.Api.Services;
+using ResourceReservation.Api.Services.Interfaces;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +12,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
   options.UseSqlServer(connectionString));
 
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
