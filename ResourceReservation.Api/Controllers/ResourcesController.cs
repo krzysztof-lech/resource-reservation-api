@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ResourceReservation.Api.Data;
-using ResourceReservation.Api.Models;
 using ResourceReservation.Api.Dtos;
+using ResourceReservation.Api.Services.Interfaces;
 
 namespace ResourceReservation.Api.Controllers;
 
@@ -10,37 +8,26 @@ namespace ResourceReservation.Api.Controllers;
 [Route("api/[controller]")]
 public class ResourcesController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IResourceService _resourceService;
 
-    public ResourcesController(AppDbContext context)
+    public ResourcesController(IResourceService resourceService)
     {
-        _context = context;
+        _resourceService = resourceService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ResourceReadDto>>> GetResources()
     {
-        var resources = await _context.Resources
-            .Include(r => r.Category)
-            .AsNoTracking()
-            .ToListAsync();
-
-        var dtos = resources.Select(r => r.ToReadDto());
-        return Ok(dtos);
+        var resources = await _resourceService.GetAllAsync();
+        return Ok(resources);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ResourceReadDto>> GetResource(Guid id)
     {
-        var resource = await _context.Resources
-            .Include(r => r.Category)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == id);
-
-        if (resource is null)
-            return NotFound();
-
-        return Ok(resource.ToReadDto());
+        var resource = await _resourceService.GetByIdAsync(id);
+        if (resource is null) return NotFound();
+        return Ok(resource);
     }
 
     [HttpPost]
@@ -49,18 +36,8 @@ public class ResourcesController : ControllerBase
         if (dto == null)
             return BadRequest();
 
-        var resource = dto.ToEntity();
-        resource.Id = resource.Id == Guid.Empty ? Guid.NewGuid() : resource.Id;
-
-        if (resource.AllowedDays != null && resource.AllowedDays.Any())
-        {
-            resource.AllowedDaysRaw = string.Join(",", resource.AllowedDays);
-        }
-
-        _context.Resources.Add(resource);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetResource), new { id = resource.Id }, resource.ToReadDto());
+        var created = await _resourceService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetResource), new { id = created.Id }, created);
     }
 
     [HttpPut("{id}")]
@@ -69,31 +46,16 @@ public class ResourcesController : ControllerBase
         if (dto == null)
             return BadRequest();
 
-        var existing = await _context.Resources.FindAsync(id);
-        if (existing is null)
-            return NotFound();
-
-        existing.ApplyUpdates(dto);
-
-        if (existing.AllowedDays != null && existing.AllowedDays.Any())
-        {
-            existing.AllowedDaysRaw = string.Join(",", existing.AllowedDays);
-        }
-
-        await _context.SaveChangesAsync();
+        var ok = await _resourceService.UpdateAsync(id, dto);
+        if (!ok) return NotFound();
         return NoContent();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteResource(Guid id)
     {
-        var existing = await _context.Resources.FindAsync(id);
-        if (existing is null)
-            return NotFound();
-
-        _context.Resources.Remove(existing);
-        await _context.SaveChangesAsync();
-
+        var ok = await _resourceService.DeleteAsync(id);
+        if (!ok) return NotFound();
         return NoContent();
     }
 }

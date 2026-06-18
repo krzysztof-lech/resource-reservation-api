@@ -13,6 +13,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
   options.UseSqlServer(connectionString));
 
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IResourceService, ResourceService>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
