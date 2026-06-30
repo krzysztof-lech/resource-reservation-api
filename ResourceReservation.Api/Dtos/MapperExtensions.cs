@@ -102,4 +102,28 @@ public static class MapperExtensions
     {
         if (dto.Name is not null) existing.Name = dto.Name;
     }
+
+    // Reservation
+    public static ReservationReadDto ToReadDto(this Reservation r) =>
+        new(
+            Id: r.Id,
+            ResourceId: r.ResourceId,
+            ResourceName: r.Resource?.Name ?? "",
+            UserId: r.UserId,
+            UserEmail: r.User?.Email ?? "",
+            StartTime: r.StartTime,
+            EndTime: r.EndTime,
+            Status: r.Status.DisplayName
+        );
+
+    public static Reservation ToEntity(this CreateReservationDto dto, Guid userId) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            ResourceId = dto.ResourceId,
+            UserId = userId,
+            StartTime = dto.StartTime,
+            EndTime = dto.EndTime,
+            Status = new PendingStatus()
+        };
 }
