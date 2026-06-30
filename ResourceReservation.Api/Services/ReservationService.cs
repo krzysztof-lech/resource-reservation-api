@@ -41,9 +41,13 @@ public class ReservationService : IReservationService
 
         if (dto.StartTime >= dto.EndTime) return null;
 
-        var isOverlapping = await _db.Reservations
-            .Where(r => r.ResourceId == dto.ResourceId && r.Status.DisplayName != "Cancelled")
-            .AnyAsync(r => r.StartTime < dto.EndTime && r.EndTime > dto.StartTime);
+        var existingReservations = await _db.Reservations
+            .Where(r => r.ResourceId == dto.ResourceId)
+            .ToListAsync();
+
+        var isOverlapping = existingReservations
+            .Where(r => r.Status.DisplayName != "Cancelled")
+            .Any(r => r.StartTime < dto.EndTime && r.EndTime > dto.StartTime);
 
         if (isOverlapping) return null;
 
