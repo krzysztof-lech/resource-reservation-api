@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ResourceReservation.Api.Data;
 using ResourceReservation.Api.Dtos;
@@ -7,6 +8,7 @@ using ResourceReservation.Api.Services.Interfaces;
 namespace ResourceReservation.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -17,7 +19,10 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<UserReadDto>))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers()
     {
         var users = await _userService.GetAllAsync();
@@ -25,7 +30,10 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(UserReadDto))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserReadDto>> GetUser(Guid id)
     {
@@ -35,6 +43,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(UserReadDto))]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -55,8 +64,11 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UserUpdateDto dto)
     {
@@ -71,7 +83,10 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
