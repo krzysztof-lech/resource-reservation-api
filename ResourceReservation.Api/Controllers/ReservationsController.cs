@@ -72,13 +72,25 @@ public class ReservationsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Cancel(Guid id)
     {
-        var success = await _reservationService.CancelAsync(id);
-        if (!success)
-            return NotFound("Reservation not found or cannot be cancelled.");
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdString, out var requesterId))
+            return Unauthorized();
 
-        return NoContent();
+        var isAdmin = User.IsInRole("Admin");
+
+        var result = await _reservationService.CancelAsync(id, requesterId, isAdmin);
+
+        return result switch
+        {
+            CancelReservationResult.Success => NoContent(),
+            CancelReservationResult.NotFound => NotFound("Reservation not found."),
+            CancelReservationResult.Forbidden => Forbid(),
+            CancelReservationResult.CannotCancel => BadRequest("Reservation cannot be cancelled."),
+            _ => StatusCode(StatusCodes.Status500InternalServerError)
+        };
     }
 }

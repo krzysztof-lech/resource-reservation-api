@@ -85,22 +85,28 @@ public class ReservationService : IReservationService
         return await GetByIdAsync(reservation.Id);
     }
 
-    public async Task<bool> CancelAsync(Guid id)
+    public async Task<CancelReservationResult> CancelAsync(Guid id, Guid requesterId, bool isAdmin)
     {
-        _logger.LogInformation("Cancelling reservation {ReservationId}", id);
+        _logger.LogInformation("Cancel requested for reservation {ReservationId} by {RequesterId} (isAdmin={IsAdmin})", id, requesterId, isAdmin);
 
         var reservation = await _db.Reservations.FirstOrDefaultAsync(r => r.Id == id);
         if (reservation is null)
         {
             _logger.LogWarning("Reservation {ReservationId} not found for cancellation", id);
-            return false;
+            return CancelReservationResult.NotFound;
+        }
+
+        if (!isAdmin && reservation.UserId != requesterId)
+        {
+            _logger.LogWarning("Requester {RequesterId} attempted to cancel reservation {ReservationId} owned by {OwnerId}", requesterId, id, reservation.UserId);
+            return CancelReservationResult.Forbidden;
         }
 
         reservation.Status = new CancelledStatus();
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("Reservation {ReservationId} cancelled successfully", id);
-        return true;
+        return CancelReservationResult.Success;
     }
 
     public async Task<IEnumerable<ReservationReadDto>> GetByUserIdAsync(Guid userId)
