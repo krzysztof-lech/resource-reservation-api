@@ -18,10 +18,24 @@ public class ResourcesController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ResourceReadDto>))]
-    public async Task<ActionResult<IEnumerable<ResourceReadDto>>> GetResources()
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<ResourceReadDto>>> GetResources(
+        [FromQuery] string? q,
+        [FromQuery] int? categoryId,
+        [FromQuery] bool? isAvailable,
+        [FromQuery] DayOfWeek? day,
+        [FromQuery] string? atTime)
     {
-        var resources = await _resourceService.GetAllAsync();
-        return Ok(resources);
+        TimeOnly? parsedTime = null;
+        if (!string.IsNullOrWhiteSpace(atTime))
+        {
+            if (!TimeOnly.TryParse(atTime, out var t))
+                return BadRequest("Invalid atTime format. Use HH:mm or HH:mm:ss.");
+            parsedTime = t;
+        }
+
+        var filteredResources = await _resourceService.SearchAsync(q, categoryId, isAvailable, day, parsedTime);
+        return Ok(filteredResources);
     }
 
     [HttpGet("{id}")]

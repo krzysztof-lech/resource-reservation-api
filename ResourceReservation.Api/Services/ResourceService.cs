@@ -15,16 +15,45 @@ public class ResourceService : IResourceService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<ResourceReadDto>> GetAllAsync()
+    public async Task<IEnumerable<ResourceReadDto>> SearchAsync(string? q = null, int? categoryId = null, bool? isAvailable = null, DayOfWeek? day = null, TimeOnly? atTime = null)
     {
-        _logger.LogInformation("Fetching all resources");
-        var resources = await _db.Resources
+        _logger.LogInformation("Searching resources q='{Q}', categoryId={CategoryId}, isAvailable={IsAvailable}, day={Day}, atTime={AtTime}", q, categoryId, isAvailable, day, atTime);
+
+        var query = _db.Resources
             .Include(r => r.Category)
             .AsNoTracking()
-            .ToListAsync();
+            .AsQueryable();
 
-        _logger.LogInformation("Found {Count} resources", resources.Count);
-        return resources.Select(r => r.ToReadDto());
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var normalized = q.Trim();
+            query = query.Where(r =>
+                r.Name.Contains(normalized) ||
+                (r.Description != null && r.Description.Contains(normalized))
+            );
+        }
+
+        if (categoryId.HasValue)
+            query = query.Where(r => r.CategoryId == categoryId.Value);
+
+        if (isAvailable.HasValue)
+            query = query.Where(r => r.IsAvailable == isAvailable.Value);
+
+        if (day.HasValue)
+        {
+            var dayName = day.Value.ToString();
+            query = query.Where(r => r.AllowedDaysRaw.Contains(dayName));
+        }
+
+        if (atTime.HasValue)
+        {
+            var t = atTime.Value;
+            query = query.Where(r => r.AvailableFrom <= t && r.AvailableTo >= t);
+        }
+
+        var results = await query.ToListAsync();
+        _logger.LogInformation("Search returned {Count} resources", results.Count);
+        return results.Select(r => r.ToReadDto());
     }
 
     public async Task<ResourceReadDto?> GetByIdAsync(Guid id)
