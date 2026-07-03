@@ -21,11 +21,22 @@ public class UsersController : ControllerBase
     [HttpGet]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<UserReadDto>))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers()
+    public async Task<ActionResult<IEnumerable<UserReadDto>>> GetUsers(
+        [FromQuery] string? q,
+        [FromQuery] string? role,
+        [FromQuery] DateTime? createdAfter,
+        [FromQuery] DateTime? createdBefore,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize
+    )
     {
-        var users = await _userService.GetAllAsync();
+        if (page.HasValue && page <= 0) return BadRequest("page must be >= 1");
+        if (pageSize.HasValue && pageSize <= 0) return BadRequest("pageSize must be > 0");
+
+        var users = await _userService.SearchAsync(q, role, createdAfter, createdBefore, page, pageSize);
         return Ok(users);
     }
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ResourceReservation.Api.Data;
 using ResourceReservation.Api.Dtos;
+using ResourceReservation.Api.Models;
 using ResourceReservation.Api.Services.Interfaces;
 namespace ResourceReservation.Api.Services;
 
@@ -15,11 +16,54 @@ public class UserService : IUserService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<UserReadDto>> GetAllAsync()
+    public async Task<IEnumerable<UserReadDto>> SearchAsync(string? q = null, string? role = null, DateTime? createdAfter = null, DateTime? createdBefore = null, int? page = null, int? pageSize = null)
     {
-        _logger.LogInformation("Fetching all users");
-        var users = await _db.Users.AsNoTracking().ToListAsync();
-        _logger.LogInformation("Found {Count} users", users.Count);
+        _logger.LogInformation("Searching users q='{Q}', role={Role}, createdAfter={CreatedAfter}, createdBefore={CreatedBefore}, page={Page}, pageSize={PageSize}", q, role, createdAfter, createdBefore, page, pageSize);
+
+        var query = _db.Users.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var normalized = q.Trim();
+            query = query.Where(u =>
+                u.FirstName.Contains(normalized) ||
+                u.LastName.Contains(normalized) ||
+                u.Email.Contains(normalized)
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            if (Enum.TryParse<UserRole>(role, true, out var parsedRole))
+            {
+                query = query.Where(u => u.Role == parsedRole);
+            }
+            else
+            {
+                return Enumerable.Empty<UserReadDto>();
+            }
+        }
+
+        if (createdAfter.HasValue)
+            query = query.Where(u => u.CreatedAt >= createdAfter.Value);
+
+        if (createdBefore.HasValue)
+            query = query.Where(u => u.CreatedAt <= createdBefore.Value);
+
+        if (pageSize.HasValue && pageSize > 0)
+        {
+            query = query.OrderByDescending(u => u.CreatedAt).ThenBy(u => u.Id);
+
+            var p = page.GetValueOrDefault(1);
+            query = query.Skip((p - 1) * pageSize.Value).Take(pageSize.Value);
+        }
+        else
+        {
+            query = query.OrderByDescending(u => u.CreatedAt).ThenBy(u => u.Id);
+        }
+
+        var users = await query.ToListAsync();
+        _logger.LogInformation("Search returned {Count} users", users.Count);
         return users.Select(u => u.ToReadDto());
     }
 
