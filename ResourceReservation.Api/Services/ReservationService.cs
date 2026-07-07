@@ -15,18 +15,45 @@ public class ReservationService : IReservationService
     {
         _db = db;
         _logger = logger;
-    } 
+    }
 
-    public async Task<IEnumerable<ReservationReadDto>> GetAllAsync()
+    public async Task<IEnumerable<ReservationReadDto>> SearchAsync(Guid? userId = null, string? status = null, bool? isPast = null)
     {
-        _logger.LogInformation("Fetching all reservations");
-        var reservations = await _db.Reservations
+        _logger.LogInformation("Searching reservations: userId={UserId}, status={Status}, isPast={IsPast}", userId, status, isPast);
+
+        var query = _db.Reservations
             .Include(r => r.Resource)
             .Include(r => r.User)
             .AsNoTracking()
-            .ToListAsync();
+            .AsQueryable();
 
-        return reservations.Select(r => r.ToReadDto());
+        if (userId.HasValue)
+            query = query.Where(r => r.UserId == userId.Value);
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var normalizedStatus = status.Trim();
+            query = query.Where(r => r.Status.DisplayName.Contains(normalizedStatus));
+        }
+
+        if (isPast.HasValue)
+        {
+            var now = DateTime.UtcNow;
+            if (isPast.Value)
+            {
+                query = query.Where(r => r.EndTime < now);
+            }
+            else
+            {
+                query = query.Where(r => r.EndTime >= now);
+            }
+        }
+
+        query = query.OrderByDescending(r => r.StartTime);
+
+        var results = await query.ToListAsync();
+        _logger.LogInformation("Search returned {Count} reservations", results.Count);
+        return results.Select(r => r.ToReadDto());
     }
 
     public async Task<ReservationReadDto?> GetByIdAsync(Guid id)
@@ -107,19 +134,5 @@ public class ReservationService : IReservationService
 
         _logger.LogInformation("Reservation {ReservationId} cancelled successfully", id);
         return CancelReservationResult.Success;
-    }
-
-    public async Task<IEnumerable<ReservationReadDto>> GetByUserIdAsync(Guid userId)
-    {
-        _logger.LogInformation("Fetching reservations for user {UserId}", userId);
-        var reservations = await _db.Reservations
-            .Include(r => r.Resource)
-            .Include(r => r.User)
-            .AsNoTracking()
-            .Where(r => r.UserId == userId)
-            .ToListAsync();
-
-        _logger.LogInformation("Found {Count} reservations for user {UserId}", reservations.Count(), userId);
-        return reservations.Select(r => r.ToReadDto());
     }
 }

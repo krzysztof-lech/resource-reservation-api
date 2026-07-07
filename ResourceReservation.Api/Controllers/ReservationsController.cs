@@ -1,8 +1,9 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ResourceReservation.Api.Dtos;
+using ResourceReservation.Api.Models;
 using ResourceReservation.Api.Services.Interfaces;
+using System.Security.Claims;
 
 namespace ResourceReservation.Api.Controllers;
 
@@ -19,9 +20,13 @@ public class ReservationsController : ControllerBase
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ReservationReadDto>))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<IEnumerable<ReservationReadDto>>> GetAll()
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<ReservationReadDto>>> GetAll(
+        [FromQuery] Guid? userId,
+        [FromQuery] string? status,
+        [FromQuery] bool? isPast)
     {
-        var reservations = await _reservationService.GetAllAsync();
+        var reservations = await _reservationService.SearchAsync(userId, status, isPast);
         return Ok(reservations);
     }
 
@@ -39,13 +44,15 @@ public class ReservationsController : ControllerBase
     [HttpGet("user/my")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ReservationReadDto>))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<IEnumerable<ReservationReadDto>>> GetMyReservations()
+    public async Task<ActionResult<IEnumerable<ReservationReadDto>>> GetMyReservations(
+        [FromQuery] string? status,
+        [FromQuery] bool? isPast)
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdString, out var userId))
             return Unauthorized();
 
-        var reservations = await _reservationService.GetByUserIdAsync(userId);
+        var reservations = await _reservationService.SearchAsync(userId, status, isPast);
         return Ok(reservations);
     }
 
