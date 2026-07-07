@@ -82,9 +82,30 @@ public class ReservationService : IReservationService
             return null;
         }
 
+        if (!resource.IsAvailable)
+        {
+            _logger.LogWarning("Resource {ResourceId} is currently deactivated/unavailable", dto.ResourceId);
+            return null;
+        }
+
         if (dto.StartTime >= dto.EndTime)
         {
             _logger.LogWarning("Invalid time range: start {Start} >= end {End}", dto.StartTime, dto.EndTime);
+            return null;
+        }
+
+        var reservationDay = dto.StartTime.DayOfWeek;
+        if (!resource.AllowedDays.Contains(reservationDay))
+        {
+            _logger.LogWarning("Resource {ResourceId} is not available on {DayOfWeek}", dto.ResourceId, reservationDay);
+            return null;
+        }
+
+        var rStart = TimeOnly.FromDateTime(dto.StartTime);
+        var rEnd = TimeOnly.FromDateTime(dto.EndTime);
+        if (rStart < resource.AvailableFrom || rEnd > resource.AvailableTo)
+        {
+            _logger.LogWarning("Reservation time {Start}-{End} is outside of resource operating hours {AvailableFrom}-{AvailableTo}", rStart, rEnd, resource.AvailableFrom, resource.AvailableTo);
             return null;
         }
 
