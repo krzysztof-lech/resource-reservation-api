@@ -34,6 +34,12 @@ public class ResourcesController : ControllerBase
             parsedTime = t;
         }
 
+        var isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole("Admin");
+        if (!isAdmin)
+        {
+            isAvailable = true;
+        }
+
         var filteredResources = await _resourceService.SearchAsync(q, categoryId, isAvailable, day, parsedTime);
         return Ok(filteredResources);
     }
@@ -45,6 +51,13 @@ public class ResourcesController : ControllerBase
     {
         var resource = await _resourceService.GetByIdAsync(id);
         if (resource is null) return NotFound();
+
+        var isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole("Admin");
+        if (!resource.IsAvailable && !isAdmin)
+        {
+            return NotFound();
+        }
+
         return Ok(resource);
     }
 
