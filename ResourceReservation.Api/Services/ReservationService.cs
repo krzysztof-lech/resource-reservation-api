@@ -17,7 +17,7 @@ public class ReservationService : IReservationService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<ReservationReadDto>> SearchAsync(Guid? userId = null, string? status = null, bool? isPast = null)
+    public async Task<IEnumerable<IReservationReadDto>> SearchAsync(bool isAdmin, Guid? userId = null, string? status = null, bool? isPast = null)
     {
         _logger.LogInformation("Searching reservations: userId={UserId}, status={Status}, isPast={IsPast}", userId, status, isPast);
 
@@ -52,11 +52,15 @@ public class ReservationService : IReservationService
         query = query.OrderByDescending(r => r.StartTime);
 
         var results = await query.ToListAsync();
+
         _logger.LogInformation("Search returned {Count} reservations", results.Count);
-        return results.Select(r => r.ToReadDto());
+
+        return isAdmin
+            ? results.Select(r => r.ToReadDto())
+            : results.Select(r => r.ToPublicReadDto());
     }
 
-    public async Task<ReservationReadDto?> GetByIdAsync(Guid id)
+    public async Task<IReservationReadDto?> GetByIdAsync(Guid id, bool isAdmin)
     {
         _logger.LogInformation("Fetching reservation {ReservationId}", id);
         var reservation = await _db.Reservations
@@ -68,10 +72,12 @@ public class ReservationService : IReservationService
         if (reservation is null)
             _logger.LogWarning("Reservation {ReservationId} not found", id);
 
-        return reservation?.ToReadDto();
+        return isAdmin
+            ? reservation.ToReadDto()
+            : reservation.ToPublicReadDto();
     }
 
-    public async Task<ReservationReadDto?> CreateAsync(CreateReservationDto dto, Guid userId)
+    public async Task<IReservationReadDto?> CreateAsync(CreateReservationDto dto, Guid userId)
     {
         _logger.LogInformation("Creating reservation for user {UserId}, resource {ResourceId}, time {StartTime}-{EndTime}", userId, dto.ResourceId, dto.StartTime, dto.EndTime);
 
@@ -126,7 +132,7 @@ public class ReservationService : IReservationService
         _logger.LogInformation("Reservation {ReservationId} created successfully", reservation.Id);
 
         _db.Entry(reservation).State = EntityState.Detached;
-        return await GetByIdAsync(reservation.Id);
+        return await GetByIdAsync(reservation.Id, false);
     }
 
     public async Task<CancelReservationResult> CancelAsync(Guid id, Guid requesterId, bool isAdmin)

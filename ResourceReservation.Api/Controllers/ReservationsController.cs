@@ -18,33 +18,33 @@ public class ReservationsController : ControllerBase
         _reservationService = reservationService;
 
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ReservationReadDto>))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<IReservationReadDto>))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<IEnumerable<ReservationReadDto>>> GetAll(
+    public async Task<ActionResult<IEnumerable<IReservationReadDto>>> GetAll(
         [FromQuery] Guid? userId,
         [FromQuery] string? status,
         [FromQuery] bool? isPast)
     {
-        var reservations = await _reservationService.SearchAsync(userId, status, isPast);
+        var reservations = await _reservationService.SearchAsync(User.IsInRole("Admin"), userId, status, isPast);
         return Ok(reservations);
     }
 
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReservationReadDto))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IReservationReadDto))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ReservationReadDto>> GetById(Guid id)
+    public async Task<ActionResult<IReservationReadDto>> GetById(Guid id)
     {
-        var reservation = await _reservationService.GetByIdAsync(id);
+        var reservation = await _reservationService.GetByIdAsync(id, User.IsInRole("Admin"));
         if (reservation is null) return NotFound();
         return Ok(reservation);
     }
 
     [HttpGet("user/my")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ReservationReadDto>))]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<IReservationReadDto>))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<IEnumerable<ReservationReadDto>>> GetMyReservations(
+    public async Task<ActionResult<IEnumerable<IReservationReadDto>>> GetMyReservations(
         [FromQuery] string? status,
         [FromQuery] bool? isPast)
     {
@@ -52,15 +52,15 @@ public class ReservationsController : ControllerBase
         if (!Guid.TryParse(userIdString, out var userId))
             return Unauthorized();
 
-        var reservations = await _reservationService.SearchAsync(userId, status, isPast);
+        var reservations = await _reservationService.SearchAsync(false, userId, status, isPast);
         return Ok(reservations);
     }
 
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ReservationReadDto))]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(IReservationReadDto))]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ReservationReadDto>> Create([FromBody] CreateReservationDto dto)
+    public async Task<ActionResult<IReservationReadDto>> Create([FromBody] CreateReservationDto dto)
     {
         if (dto is null) return BadRequest();
 

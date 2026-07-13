@@ -11,12 +11,13 @@ public enum CancelReservationResult
 }
 public interface IReservationService
 {
-    Task<IEnumerable<ReservationReadDto>> SearchAsync(
+    Task<IEnumerable<IReservationReadDto>> SearchAsync(
+        bool isAdmin,
         Guid? userId = null,
         string? status = null,
         bool? isPast = null
     );
-    Task<ReservationReadDto?> GetByIdAsync(Guid id);
-    Task<ReservationReadDto?> CreateAsync(CreateReservationDto dto, Guid userId);
+    Task<IReservationReadDto?> GetByIdAsync(Guid id, bool isAdmin);
+    Task<IReservationReadDto?> CreateAsync(CreateReservationDto dto, Guid userId);
     Task<CancelReservationResult> CancelAsync(Guid id, Guid requesterId, bool isAdmin);
 }

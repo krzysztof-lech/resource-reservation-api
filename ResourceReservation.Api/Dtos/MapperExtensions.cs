@@ -122,6 +122,16 @@ public static class MapperExtensions
             Status: r.Status.DisplayName
         );
 
+    public static ReservationPublicReadDto ToPublicReadDto(this Reservation r) =>
+        new(
+            Id: r.Id,
+            ResourceId: r.ResourceId,
+            ResourceName: r.Resource?.Name ?? "",
+            StartTime: r.StartTime,
+            EndTime: r.EndTime,
+            Status: r.Status.DisplayName
+        );
+
     public static Reservation ToEntity(this CreateReservationDto dto, Guid userId) =>
         new()
         {

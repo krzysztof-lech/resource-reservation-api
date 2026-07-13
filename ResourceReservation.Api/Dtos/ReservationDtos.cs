@@ -15,4 +15,13 @@ public record ReservationReadDto(
     DateTime StartTime,
     DateTime EndTime,
     string Status
-);
+) : IReservationReadDto;
+
+public record ReservationPublicReadDto(
+    Guid Id,
+    Guid ResourceId,
+    string ResourceName,
+    DateTime StartTime,
+    DateTime EndTime,
+    string Status
+) : IReservationReadDto;
