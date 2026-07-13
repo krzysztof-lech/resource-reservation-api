@@ -88,11 +88,6 @@ public class ReservationService : IReservationService
             return null;
         }
 
-        if (dto.StartTime >= dto.EndTime)
-        {
-            _logger.LogWarning("Invalid time range: start {Start} >= end {End}", dto.StartTime, dto.EndTime);
-            return null;
-        }
 
         var reservationDay = dto.StartTime.DayOfWeek;
         if (!resource.AllowedDays.Contains(reservationDay))
