@@ -16,7 +16,6 @@ public record UserCreateDto
     public required string LastName { get; init; }
     public required string Email { get; init; }
     public required string Password { get; init; }
-    public string? Role { get; init; }
 }
 
 public record UserUpdateDto

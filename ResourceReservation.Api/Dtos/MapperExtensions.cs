@@ -61,19 +61,13 @@ public static class MapperExtensions
 
     public static User ToEntity(this UserCreateDto dto, bool assignAdminRoleAllowed = false)
     {
-        var targetRole = UserRole.User;
-        if (assignAdminRoleAllowed && Enum.TryParse<UserRole>(dto.Role, out var parsedRole))
-        {
-            targetRole = parsedRole;
-        }
-
         var u = new User
         {
             Id = Guid.NewGuid(),
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Email = dto.Email,
-            Role = targetRole,
+            Role = UserRole.User,
             CreatedAt = DateTime.UtcNow,
             PasswordHash = PasswordHasher.HashPassword(dto.Password)
         };
