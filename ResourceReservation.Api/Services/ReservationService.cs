@@ -139,9 +139,7 @@ public class ReservationService : IReservationService
     {
         _logger.LogInformation("Cancel requested for reservation {ReservationId} by {RequesterId} (isAdmin={IsAdmin})", id, requesterId, isAdmin);
 
-        var reservation = await _db.Reservations
-            .Include(r => r.Status)
-            .FirstOrDefaultAsync(r => r.Id == id);
+        var reservation = await _db.Reservations.FirstOrDefaultAsync(r => r.Id == id);
 
         if (reservation is null)
         {
