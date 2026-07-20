@@ -170,7 +170,7 @@ public class ReservationServiceTests
 
         var svc = new ReservationService(db, NullLogger<ReservationService>.Instance);
 
-        var start = DateTime.UtcNow.AddHours(2);
+        var start = NextWeekdayAtNineUtc().AddHours(1);
         var end = start.AddHours(1);
         var dto = new CreateReservationDto(resourceId, start, end);
 
