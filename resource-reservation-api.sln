@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.37012.4 d17.14
+VisualStudioVersion = 17.14.37012.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResourceReservation.Api", "ResourceReservation.Api\ResourceReservation.Api.csproj", "{4E294EA4-37F5-415C-A210-9E0B12B72D51}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ResourceReservation.Tests", "ResourceReservation.Tests\ResourceReservation.Tests.csproj", "{9EF3C5A0-5E07-49F5-AA4F-47E6D035C656}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{4E294EA4-37F5-415C-A210-9E0B12B72D51}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E294EA4-37F5-415C-A210-9E0B12B72D51}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4E294EA4-37F5-415C-A210-9E0B12B72D51}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9EF3C5A0-5E07-49F5-AA4F-47E6D035C656}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9EF3C5A0-5E07-49F5-AA4F-47E6D035C656}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9EF3C5A0-5E07-49F5-AA4F-47E6D035C656}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9EF3C5A0-5E07-49F5-AA4F-47E6D035C656}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

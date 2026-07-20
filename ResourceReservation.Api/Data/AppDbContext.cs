@@ -25,7 +25,7 @@ public class AppDbContext : DbContext
             .Property(r => r.Status)
             .HasConversion(
                 status => status.DisplayName,
-                value => ConvertToReservationStatus(value) // Wywołujemy osobną, klasyczną metodę pomocniczą
+                value => ConvertToReservationStatus(value)
             );
     }
 
