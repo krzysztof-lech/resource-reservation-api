@@ -9,100 +9,98 @@ using ResourceReservation.Api.Security;
 using ResourceReservation.Api.Services.Interfaces;
 using FluentAssertions;
 
-namespace ResourceReservation.Tests.Services
+namespace ResourceReservation.Tests.Services;
+public class AuthServiceTests
 {
-    public class AuthServiceTests
+    [Fact]
+    public async Task AuthenticateAsync_ReturnsTokenDto_WhenCredentialsValid()
     {
-        [Fact]
-        public async Task AuthenticateAsync_ReturnsTokenDto_WhenCredentialsValid()
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: $"Auth_Success_{Guid.NewGuid()}")
+            .Options;
+
+        using var db = new AppDbContext(options);
+
+        var plainPassword = "P@ssw0rd!";
+        var user = new User
         {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: $"Auth_Success_{Guid.NewGuid()}")
-                .Options;
+            Id = Guid.NewGuid(),
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com",
+            PasswordHash = PasswordHasher.HashPassword(plainPassword),
+            Role = UserRole.User
+        };
 
-            using var db = new AppDbContext(options);
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
 
-            var plainPassword = "P@ssw0rd!";
-            var user = new User
-            {
-                Id = Guid.NewGuid(),
-                FirstName = "Test",
-                LastName = "User",
-                Email = "test@example.com",
-                PasswordHash = PasswordHasher.HashPassword(plainPassword),
-                Role = UserRole.User
-            };
+        var tokenValue = "issued-token";
+        var tokenServiceMock = new Mock<ITokenService>();
+        tokenServiceMock.Setup(s => s.CreateToken(It.Is<User>(u => u.Id == user.Id)))
+                        .Returns(tokenValue);
 
-            db.Users.Add(user);
-            await db.SaveChangesAsync();
+        var logger = NullLogger<AuthService>.Instance;
+        var svc = new AuthService(db, tokenServiceMock.Object, logger);
 
-            var tokenValue = "issued-token";
-            var tokenServiceMock = new Mock<ITokenService>();
-            tokenServiceMock.Setup(s => s.CreateToken(It.Is<User>(u => u.Id == user.Id)))
-                            .Returns(tokenValue);
+        var dto = new LoginDto(user.Email, plainPassword);
+        var result = await svc.AuthenticateAsync(dto);
 
-            var logger = NullLogger<AuthService>.Instance;
-            var svc = new AuthService(db, tokenServiceMock.Object, logger);
+        result.Should().NotBeNull();
+        result!.Token.Should().Be(tokenValue);
+        tokenServiceMock.Verify(s => s.CreateToken(It.IsAny<User>()), Times.Once);
+    }
 
-            var dto = new LoginDto(user.Email, plainPassword);
-            var result = await svc.AuthenticateAsync(dto);
+    [Fact]
+    public async Task AuthenticateAsync_ReturnsNull_WhenUserNotFound()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: $"Auth_NotFound_{Guid.NewGuid()}")
+            .Options;
 
-            result.Should().NotBeNull();
-            result!.Token.Should().Be(tokenValue);
-            tokenServiceMock.Verify(s => s.CreateToken(It.IsAny<User>()), Times.Once);
-        }
+        using var db = new AppDbContext(options);
 
-        [Fact]
-        public async Task AuthenticateAsync_ReturnsNull_WhenUserNotFound()
+        var tokenServiceMock = new Mock<ITokenService>();
+        var logger = NullLogger<AuthService>.Instance;
+        var svc = new AuthService(db, tokenServiceMock.Object, logger);
+
+        var dto = new LoginDto("nosuch@example.com", "irrelevant");
+        var result = await svc.AuthenticateAsync(dto);
+
+        result.Should().BeNull();
+        tokenServiceMock.Verify(s => s.CreateToken(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AuthenticateAsync_ReturnsNull_WhenPasswordInvalid()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: $"Auth_BadPassword_{Guid.NewGuid()}")
+            .Options;
+
+        using var db = new AppDbContext(options);
+
+        var user = new User
         {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: $"Auth_NotFound_{Guid.NewGuid()}")
-                .Options;
+            Id = Guid.NewGuid(),
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test2@example.com",
+            PasswordHash = PasswordHasher.HashPassword("CorrectPassword"),
+            Role = UserRole.User
+        };
 
-            using var db = new AppDbContext(options);
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
 
-            var tokenServiceMock = new Mock<ITokenService>();
-            var logger = NullLogger<AuthService>.Instance;
-            var svc = new AuthService(db, tokenServiceMock.Object, logger);
+        var tokenServiceMock = new Mock<ITokenService>();
+        var logger = NullLogger<AuthService>.Instance;
+        var svc = new AuthService(db, tokenServiceMock.Object, logger);
 
-            var dto = new LoginDto("nosuch@example.com", "irrelevant");
-            var result = await svc.AuthenticateAsync(dto);
+        var dto = new LoginDto(user.Email, "WrongPassword");
+        var result = await svc.AuthenticateAsync(dto);
 
-            result.Should().BeNull();
-            tokenServiceMock.Verify(s => s.CreateToken(It.IsAny<User>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task AuthenticateAsync_ReturnsNull_WhenPasswordInvalid()
-        {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: $"Auth_BadPassword_{Guid.NewGuid()}")
-                .Options;
-
-            using var db = new AppDbContext(options);
-
-            var user = new User
-            {
-                Id = Guid.NewGuid(),
-                FirstName = "Test",
-                LastName = "User",
-                Email = "test2@example.com",
-                PasswordHash = PasswordHasher.HashPassword("CorrectPassword"),
-                Role = UserRole.User
-            };
-
-            db.Users.Add(user);
-            await db.SaveChangesAsync();
-
-            var tokenServiceMock = new Mock<ITokenService>();
-            var logger = NullLogger<AuthService>.Instance;
-            var svc = new AuthService(db, tokenServiceMock.Object, logger);
-
-            var dto = new LoginDto(user.Email, "WrongPassword");
-            var result = await svc.AuthenticateAsync(dto);
-
-            result.Should().BeNull();
-            tokenServiceMock.Verify(s => s.CreateToken(It.IsAny<User>()), Times.Never);
-        }
+        result.Should().BeNull();
+        tokenServiceMock.Verify(s => s.CreateToken(It.IsAny<User>()), Times.Never);
     }
 }
