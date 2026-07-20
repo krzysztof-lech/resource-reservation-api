@@ -70,7 +70,10 @@ public class ReservationService : IReservationService
             .FirstOrDefaultAsync(r => r.Id == id);
 
         if (reservation is null)
+        {
             _logger.LogWarning("Reservation {ReservationId} not found", id);
+            return null;
+        }
 
         return isAdmin
             ? reservation.ToReadDto()
