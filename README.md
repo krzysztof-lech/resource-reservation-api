@@ -138,13 +138,13 @@ New accounts are created via `POST /api/users` (public endpoint) and are assigne
 ### Reservations
 | Method        | Endpoint               | Auth | Description      |
 |---------------|------------------------|------|------------------|
-| GET           |`/api/reservations`     |User* |Search reservations (filters: `userId`, `status`, `isPast`). Admins see all reservations; regular users are implicitly scoped to their own. |
+| GET           |`/api/reservations`     |User* |Search reservations (filters: `userId`, `status`, `isPast`).|
 | GET           |`/api/reservations/{id}`|User |Get a reservation by id          |
 | GET           |`/api/reservations/user/my`|User |Get the current user's reservations |
 | POST          |`/api/reservations`|User |Create a reservation |
 | PUT           |`/api/reservations/{id}/cancel`|User |Cancel a reservation (owner or admin only) |
 
-\* Any authenticated user can call this endpoint; the response is filtered based on role.
+\* Any authenticated user can see all reservations. Admins get full details (including the reservation owner); regular users get an anonymized view.
 ## Business Rules
 Creating a reservation is rejected (`400 Bad Request`) if:
 - the resource doesn't exist or is currently unavailable,
