@@ -19,6 +19,16 @@ if (!builder.Environment.IsEnvironment("Testing"))
     options.UseSqlServer(connectionString));
 }
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 builder.Services.Configure<ResourceReservation.Api.Security.JwtSettings>(builder.Configuration.GetSection("Jwt"));
 
 var jwt = builder.Configuration.GetSection("Jwt").Get<ResourceReservation.Api.Security.JwtSettings>()!;
@@ -69,6 +79,7 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
