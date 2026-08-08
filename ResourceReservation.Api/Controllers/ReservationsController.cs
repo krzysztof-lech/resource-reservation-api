@@ -18,9 +18,8 @@ public class ReservationsController : ControllerBase
         _reservationService = reservationService;
 
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<IReservationReadDto>))]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<IReservationReadDto>>> GetAll(
         [FromQuery] Guid? userId,
         [FromQuery] string? status,
