@@ -44,7 +44,7 @@ public static class MapperExtensions
         if (dto.AvailableFrom.HasValue) existing.AvailableFrom = dto.AvailableFrom.Value;
         if (dto.AvailableTo.HasValue) existing.AvailableTo = dto.AvailableTo.Value;
         if (dto.AllowedDays is not null) existing.AllowedDays = dto.AllowedDays;
-        if (dto.CategoryId is not null) existing.CategoryId = dto.CategoryId;
+        existing.CategoryId = dto.CategoryId;
     }
 
     // User
