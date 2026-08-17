@@ -169,4 +169,30 @@ public class ReservationService : IReservationService
         _logger.LogInformation("Reservation {ReservationId} cancelled successfully", id);
         return CancelReservationResult.Success;
     }
+
+    public async Task<ConfirmReservationResult> ConfirmAsync(Guid id)
+    {
+        _logger.LogInformation("Confirm requested for reservation {ReservationId}", id);
+
+        var reservation = await _db.Reservations.FirstOrDefaultAsync(r => r.Id == id);
+
+        if (reservation is null)
+        {
+            _logger.LogWarning("Reservation {ReservationId} not found for confirmation", id);
+            return ConfirmReservationResult.NotFound;
+        }
+
+        var targetStatus = new ConfirmedStatus();
+        if (!reservation.Status.CanTransitionTo(targetStatus))
+        {
+            _logger.LogWarning("Reservation {ReservationId} cannot transition from {CurrentStatus} to Confirmed", id, reservation.Status.DisplayName);
+            return ConfirmReservationResult.CannotConfirm;
+        }
+
+        reservation.Status = targetStatus;
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Reservation {ReservationId} confirmed successfully", id);
+        return ConfirmReservationResult.Success;
+    }
 }

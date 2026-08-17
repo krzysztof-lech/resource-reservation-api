@@ -9,6 +9,12 @@ public enum CancelReservationResult
     Forbidden,
     CannotCancel
 }
+public enum ConfirmReservationResult
+{
+    Success,
+    NotFound,
+    CannotConfirm
+}
 public interface IReservationService
 {
     Task<IEnumerable<IReservationReadDto>> SearchAsync(
@@ -20,4 +26,5 @@ public interface IReservationService
     Task<IReservationReadDto?> GetByIdAsync(Guid id, bool isAdmin);
     Task<IReservationReadDto?> CreateAsync(CreateReservationDto dto, Guid userId);
     Task<CancelReservationResult> CancelAsync(Guid id, Guid requesterId, bool isAdmin);
+    Task<ConfirmReservationResult> ConfirmAsync(Guid id);
 }

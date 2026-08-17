@@ -99,4 +99,24 @@ public class ReservationsController : ControllerBase
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }
+
+    [HttpPut("{id:guid}/confirm")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Confirm(Guid id)
+    {
+        var result = await _reservationService.ConfirmAsync(id);
+
+        return result switch
+        {
+            ConfirmReservationResult.Success => NoContent(),
+            ConfirmReservationResult.NotFound => NotFound("Reservation not found."),
+            ConfirmReservationResult.CannotConfirm => BadRequest("Reservation cannot be confirmed."),
+            _ => StatusCode(StatusCodes.Status500InternalServerError)
+        };
+    }
 }
