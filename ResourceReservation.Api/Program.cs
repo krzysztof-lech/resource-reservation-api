@@ -16,7 +16,11 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 if (!builder.Environment.IsEnvironment("Testing"))
 {
   builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sqlOptions =>
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 10,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorNumbersToAdd: null)));
 }
 
 builder.Services.AddCors(options =>
@@ -41,7 +45,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = true;
+    options.RequireHttpsMetadata = !builder.Environment.IsEnvironment("Docker");
     options.SaveToken = true;
     options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
@@ -71,14 +75,26 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
+    }
+}
+
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker"))
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
 
+if (!app.Environment.IsEnvironment("Docker"))
+{
+    app.UseHttpsRedirection();
+}
 
-app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
