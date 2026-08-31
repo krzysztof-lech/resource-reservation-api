@@ -2,9 +2,11 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using ResourceReservation.Api.Data;
+using ResourceReservation.Api.Models;
 using ResourceReservation.Api.Services;
 using ResourceReservation.Api.Services.Interfaces;
 using ResourceReservation.Api.Validators;
+using ResourceReservation.Api.Security;
 using Scalar.AspNetCore;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
@@ -81,6 +83,25 @@ if (!app.Environment.IsEnvironment("Testing"))
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Database.Migrate();
+
+        if (!db.Users.Any(u => u.Role == UserRole.Admin))
+        {
+            var adminEmail = builder.Configuration["SeedAdmin:Email"] ?? "admin@example.com";
+            var adminPassword = builder.Configuration["SeedAdmin:Password"] ?? "ChangeMe123!";
+
+            var admin = new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = "Admin",
+                LastName = "User",
+                Email = adminEmail,
+                PasswordHash = PasswordHasher.HashPassword(adminPassword),
+                Role = UserRole.Admin
+            };
+
+            db.Users.Add(admin);
+            db.SaveChanges();
+        }
     }
 }
 

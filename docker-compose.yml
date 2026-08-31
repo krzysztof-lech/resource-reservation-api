@@ -29,6 +29,8 @@ services:
       Jwt__Issuer: ResourceReservation.Api
       Jwt__Audience: ResourceReservation.Api
       Jwt__ExpiryMinutes: 60
+      SeedAdmin__Email: ${SEED_ADMIN_EMAIL}
+      SeedAdmin__Password: ${SEED_ADMIN_PASSWORD}
 
 volumes:
   sql_data:
