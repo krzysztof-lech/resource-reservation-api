@@ -1,6 +1,9 @@
 ﻿# Resource Reservation API
 A REST API for booking shared resources (meeting rooms, equipment, desks, etc.) built with ASP.NET Core 10 and Entity Framework Core. 
 Users can browse available resources and create reservations within a resource's operating hours, while administrators manage users, categories, and resources.
+
+> The frontend application (Angular) is available here: [Resource Reservation Frontend](https://github.com/krzysztof-lech/resource-reservation-frontend)
+
 ## Features
 - JWT authentication with role-based authorization (`User` / `Admin`)
 - Resource catalog with categories, availability windows, and allowed days of the week
@@ -25,6 +28,8 @@ Users can browse available resources and create reservations within a resource's
 |Validation     |FluentValidation + SharpGrip AutoValidation                 |
 |API docs       |Scalar.AspNetCore (OpenAPI UI)                              |
 |Testing        |xUnit, Moq, FluentAssertions, EF Core InMemory, SQLite      |
+|Containerization|Docker, Docker Compose                                     |
+|CI             |GitHub Actions (build & test on push/PR)                    |
 ## Project Structure
 ```
 ResourceReservation.Api/
@@ -47,11 +52,60 @@ ResourceReservation.Tests/
 ```
 
 ## Getting Started
-### Prerequisites
+
+### Option A: Run with Docker
+
+The easiest way to run the API - no local .NET SDK or SQL Server installation required.
+
+**Prerequisites:**
+- Docker Desktop
+
+**Steps:**
+
+1. Clone the repository
+```bash
+git clone https://github.com/krzysztof-lech/resource-reservation-api.git
+cd resource-reservation-api
+```
+
+2. Create a `.env` file in the project root (next to `docker-compose.yml`):
+```
+SA_PASSWORD=YourStrongPassword123!
+JWT_KEY=your-strong-random-base64-32-plus-chars
+SEED_ADMIN_EMAIL=admin@example.com
+SEED_ADMIN_PASSWORD=AdminStrongPass123!
+```
+(`SA_PASSWORD` must contain at least 8 characters, including uppercase, lowercase, a digit, and a special character.)
+
+3. Build and start the containers:
+```bash
+docker compose up --build
+```
+
+4. The API is now available at `http://localhost:5000`, with interactive docs at `http://localhost:5000/scalar`.
+
+The database and all migrations are applied automatically on startup. A default admin account is also seeded automatically on first run, using the credentials from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` — no manual setup needed to start managing categories, resources, or users.
+
+To stop the containers:
+```bash
+docker compose down
+```
+
+To reset the database (fresh start, including the seeded admin):
+```bash
+docker compose down -v
+```
+
+---
+
+### Option B: Run locally
+
+**Prerequisites:**
 - .NET 10 SDK
 - SQL Server (LocalDB is fine for local development)
 
-### Configuration
+**Configuration:**
+
 Connection string and JWT settings live in `appsettings.json`:
 ```json
 {
@@ -72,7 +126,7 @@ dotnet user-secrets set "Jwt:Key" "your-strong-random-key"
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "your-connection-string"
 ```
 
-### Running the API
+**Steps:**
 ```bash
 # Apply EF Core migrations (creates the database)
 dotnet ef database update
@@ -81,7 +135,9 @@ dotnet ef database update
 dotnet run --project ResourceReservation.Api
 ```
 
-In development, interactive API docs are available via Scalar at `/scalar` (OpenAPI spec at /openapi/v1.json).
+In development, interactive API docs are available via Scalar at `/scalar` (OpenAPI spec at `/openapi/v1.json`).
+
+Note: running locally does not seed a default admin account. To manage categories/resources/users, register a user via `POST /api/users` and promote it to `Admin` directly in the database, or run the API via Docker instead (see Option A).
 
 ### Running the Tests
 ```bash
@@ -169,3 +225,7 @@ Validation (via FluentValidation) enforces, among other rules:
 - emails: valid format
 - reservation start time: must be in the future; end time must be after start time
 - resource operating hours: "available to" must be after "available from"
+
+## Related Repository
+
+- 🔗 **[Resource Reservation Frontend](https://github.com/krzysztof-lech/resource-reservation-frontend)** — Angular frontend implementation
