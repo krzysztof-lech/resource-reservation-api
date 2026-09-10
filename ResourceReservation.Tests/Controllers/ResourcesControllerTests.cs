@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -14,11 +15,18 @@ using Xunit;
 namespace ResourceReservation.Tests.Controllers;
 public class ResourcesControllerTests
 {
+    private static ResourcesController CreateController(IResourceService resourceService)
+    {
+        var envMock = new Mock<IWebHostEnvironment>();
+        envMock.Setup(e => e.WebRootPath).Returns(System.IO.Path.GetTempPath());
+        return new ResourcesController(resourceService, envMock.Object);
+    }
+
     [Fact]
     public async Task GetResources_ReturnsBadRequest_WhenAtTimeInvalid()
     {
         var svcMock = new Mock<IResourceService>();
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
 
         var result = await controller.GetResources(q: null, categoryId: null, isAvailable: null, day: null, atTime: "not-a-time");
@@ -38,7 +46,7 @@ public class ResourcesControllerTests
         svcMock.Setup(s => s.SearchAsync(It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<bool?>(), It.IsAny<DayOfWeek?>(), It.IsAny<TimeOnly?>()))
                .ReturnsAsync(resources);
 
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
 
         var result = await controller.GetResources(q: null, categoryId: null, isAvailable: null, day: null, atTime: null);
@@ -54,7 +62,7 @@ public class ResourcesControllerTests
         var svcMock = new Mock<IResourceService>();
         svcMock.Setup(s => s.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((ResourceReadDto?)null);
 
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
 
         var result = await controller.GetResource(Guid.NewGuid());
@@ -69,7 +77,7 @@ public class ResourcesControllerTests
         var svcMock = new Mock<IResourceService>();
         svcMock.Setup(s => s.GetByIdAsync(dto.Id)).ReturnsAsync(dto);
 
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
 
         var result = await controller.GetResource(dto.Id);
@@ -84,7 +92,7 @@ public class ResourcesControllerTests
         var svcMock = new Mock<IResourceService>();
         svcMock.Setup(s => s.GetByIdAsync(dto.Id)).ReturnsAsync(dto);
 
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         var admin = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "Admin") }, "Test"));
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = admin } };
 
@@ -99,7 +107,7 @@ public class ResourcesControllerTests
     public async Task CreateResource_ReturnsBadRequest_WhenDtoNull()
     {
         var svcMock = new Mock<IResourceService>();
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
 
         var result = await controller.CreateResource(null!);
@@ -114,7 +122,7 @@ public class ResourcesControllerTests
         var svcMock = new Mock<IResourceService>();
         svcMock.Setup(s => s.CreateAsync(It.IsAny<ResourceCreateDto>())).ReturnsAsync(created);
 
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
         var dto = new ResourceCreateDto { Name = "New" };
 
@@ -129,7 +137,7 @@ public class ResourcesControllerTests
     public async Task UpdateResource_ReturnsBadRequest_WhenDtoNull()
     {
         var svcMock = new Mock<IResourceService>();
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
 
         var result = await controller.UpdateResource(Guid.NewGuid(), null!);
@@ -143,7 +151,7 @@ public class ResourcesControllerTests
         var svcMock = new Mock<IResourceService>();
         svcMock.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<ResourceUpdateDto>())).ReturnsAsync(false);
 
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
         var result = await controller.UpdateResource(Guid.NewGuid(), new ResourceUpdateDto { Name = "A" });
 
@@ -156,7 +164,7 @@ public class ResourcesControllerTests
         var svcMock = new Mock<IResourceService>();
         svcMock.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<ResourceUpdateDto>())).ReturnsAsync(true);
 
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
         var result = await controller.UpdateResource(Guid.NewGuid(), new ResourceUpdateDto { Name = "A" });
 
@@ -169,7 +177,7 @@ public class ResourcesControllerTests
         var svcMock = new Mock<IResourceService>();
         svcMock.Setup(s => s.DeleteAsync(It.IsAny<Guid>())).ReturnsAsync(false);
 
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
         var result = await controller.DeleteResource(Guid.NewGuid());
 
@@ -182,7 +190,7 @@ public class ResourcesControllerTests
         var svcMock = new Mock<IResourceService>();
         svcMock.Setup(s => s.DeleteAsync(It.IsAny<Guid>())).ReturnsAsync(true);
 
-        var controller = new ResourcesController(svcMock.Object);
+        var controller = CreateController(svcMock.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) } };
         var result = await controller.DeleteResource(Guid.NewGuid());
 

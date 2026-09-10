@@ -10,10 +10,20 @@ namespace ResourceReservation.Api.Controllers;
 public class ResourcesController : ControllerBase
 {
     private readonly IResourceService _resourceService;
+    private readonly IWebHostEnvironment _env;
 
-    public ResourcesController(IResourceService resourceService)
+
+    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".webp"
+    };
+
+    private const long MaxFileSizeBytes = 5 * 1024 * 1024;
+
+    public ResourcesController(IResourceService resourceService, IWebHostEnvironment env)
     {
         _resourceService = resourceService;
+        _env = env;
     }
 
     [HttpGet]
