@@ -77,6 +77,9 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+var uploadsPath = Path.Combine(app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"), "uploads", "resources");
+Directory.CreateDirectory(uploadsPath);
+
 if (!app.Environment.IsEnvironment("Testing"))
 {
     using (var scope = app.Services.CreateScope())
@@ -116,6 +119,7 @@ if (!app.Environment.IsEnvironment("Docker"))
     app.UseHttpsRedirection();
 }
 
+app.UseStaticFiles();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();

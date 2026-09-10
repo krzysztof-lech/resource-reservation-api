@@ -21,6 +21,7 @@ public class ResourceService : IResourceService
 
         var query = _db.Resources
             .Include(r => r.Category)
+            .Include(r => r.Images)
             .AsNoTracking()
             .AsQueryable();
 
@@ -61,6 +62,7 @@ public class ResourceService : IResourceService
         _logger.LogInformation("Fetching resource {ResourceId}", id);
         var resource = await _db.Resources
             .Include(r => r.Category)
+            .Include(r => r.Images)
             .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == id);
 
@@ -127,6 +129,61 @@ public class ResourceService : IResourceService
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("Resource {ResourceId} deleted successfully", id);
+        return true;
+    }
+
+    public async Task<ResourceImageDto?> AddImageAsync(Guid resourceId, string fileName)
+    {
+        _logger.LogInformation("Adding image {FileName} to resource {ResourceId}", fileName, resourceId);
+
+        var resourceExists = await _db.Resources.AnyAsync(r => r.Id == resourceId);
+        if (!resourceExists)
+        {
+            _logger.LogWarning("Resource {ResourceId} not found for image upload", resourceId);
+            return null;
+        }
+
+        var maxOrder = await _db.Images
+            .Where(i => i.ResourceId == resourceId)
+            .Select(i => (int?)i.DisplayOrder)
+            .MaxAsync() ?? -1;
+
+        var image = new Models.ResourceImage
+        {
+            Id = Guid.NewGuid(),
+            ResourceId = resourceId,
+            FileName = fileName,
+            DisplayOrder = maxOrder + 1
+        };
+
+        _db.Images.Add(image);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Image {ImageId} added to resource {ResourceId}", image.Id, resourceId);
+
+        return new ResourceImageDto
+        {
+            Id = image.Id,
+            Url = $"/uploads/resources/{image.FileName}",
+            DisplayOrder = image.DisplayOrder
+        };
+    }
+
+    public async Task<bool> DeleteImageAsync(Guid resourceId, Guid imageId)
+    {
+        _logger.LogInformation("Deleting image {ImageId} from resource {ResourceId}", imageId, resourceId);
+
+        var image = await _db.Images.FirstOrDefaultAsync(i => i.Id == imageId && i.ResourceId == resourceId);
+        if (image is null)
+        {
+            _logger.LogWarning("Image {ImageId} not found for resource {ResourceId}", imageId, resourceId);
+            return false;
+        }
+
+        _db.Images.Remove(image);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Image {ImageId} deleted successfully", imageId);
         return true;
     }
 }

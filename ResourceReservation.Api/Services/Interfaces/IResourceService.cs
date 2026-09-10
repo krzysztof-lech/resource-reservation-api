@@ -13,4 +13,6 @@ public interface IResourceService
     Task<ResourceReadDto> CreateAsync(ResourceCreateDto dto);
     Task<bool> UpdateAsync(Guid id, ResourceUpdateDto dto);
     Task<bool> DeleteAsync(Guid id);
+    Task<ResourceImageDto?> AddImageAsync(Guid resourceId, string fileName);
+    Task<bool> DeleteImageAsync(Guid resourceId, Guid imageId);
 }

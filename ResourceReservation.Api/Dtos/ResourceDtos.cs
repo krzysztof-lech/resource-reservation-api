@@ -12,6 +12,14 @@ public record ResourceReadDto
     public List<DayOfWeek> AllowedDays { get; init; } = new();
     public int? CategoryId { get; init; }
     public string? CategoryName { get; init; }
+    public List<ResourceImageDto> Images { get; init; } = new();
+}
+
+public record ResourceImageDto
+{
+    public Guid Id { get; init; }
+    public required string Url { get; init; }
+    public int DisplayOrder { get; init; }
 }
 
 public record ResourceCreateDto

@@ -18,7 +18,16 @@ public static class MapperExtensions
             AvailableTo = r.AvailableTo,
             AllowedDays = r.AllowedDays ?? new(),
             CategoryId = r.CategoryId,
-            CategoryName = r.Category?.Name
+            CategoryName = r.Category?.Name,
+            Images = r.Images
+                .OrderBy(i => i.DisplayOrder)
+                .Select(i => new ResourceImageDto
+                {
+                    Id = i.Id,
+                    Url = $"/uploads/resources/{i.FileName}",
+                    DisplayOrder = i.DisplayOrder
+                })
+                .ToList()
         };
 
     public static Resource ToEntity(this ResourceCreateDto dto) =>
