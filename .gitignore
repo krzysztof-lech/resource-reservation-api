@@ -406,4 +406,4 @@ FodyWeavers.xsd
 
 .env
 
-wwwroot/uploads/
+**/wwwroot/uploads/
