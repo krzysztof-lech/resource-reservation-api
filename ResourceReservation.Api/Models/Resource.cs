@@ -21,5 +21,6 @@ public class Resource
     }
     public int? CategoryId { get; set; }
     public Category? Category { get; set; }
+    public List<ResourceImage> Images { get; set; } = new();
 }
 

@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Resource> Resources { get; set; }
     public DbSet<Reservation> Reservations { get; set; }
     public DbSet<Category> Categories { get; set; }
+    public DbSet<ResourceImage> Images { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +28,12 @@ public class AppDbContext : DbContext
                 status => status.DisplayName,
                 value => ConvertToReservationStatus(value)
             );
+
+        modelBuilder.Entity<ResourceImage>()
+            .HasOne(i => i.Resource)
+            .WithMany(r => r.Images)
+            .HasForeignKey(i => i.ResourceId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private static ReservationStatus ConvertToReservationStatus(string value)
