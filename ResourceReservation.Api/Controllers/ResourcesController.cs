@@ -115,5 +115,74 @@ public class ResourcesController : ControllerBase
         if (!ok) return NotFound();
         return NoContent();
     }
+
+    [HttpPost("{id}/images")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ResourceImageDto))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ResourceImageDto>> UploadImage(Guid id, IFormFile file)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest("No file was uploaded.");
+
+        if (file.Length > MaxFileSizeBytes)
+            return BadRequest("File is too large. Maximum size is 5 MB.");
+
+        var extension = Path.GetExtension(file.FileName);
+        if (!AllowedExtensions.Contains(extension))
+            return BadRequest("Unsupported file type. Allowed types: jpg, jpeg, png, webp.");
+
+        var webRootPath = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+        var uploadsFolder = Path.Combine(webRootPath, "uploads", "resources");
+        Directory.CreateDirectory(uploadsFolder);
+
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(uploadsFolder, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var result = await _resourceService.AddImageAsync(id, fileName);
+        if (result is null)
+        {
+            System.IO.File.Delete(filePath);
+            return NotFound("Resource not found.");
+        }
+
+        return CreatedAtAction(nameof(GetResource), new { id }, result);
+    }
+
+    [HttpDelete("{id}/images/{imageId}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteImage(Guid id, Guid imageId)
+    {
+        var resource = await _resourceService.GetByIdAsync(id);
+        var image = resource?.Images.FirstOrDefault(i => i.Id == imageId);
+
+        var ok = await _resourceService.DeleteImageAsync(id, imageId);
+        if (!ok) return NotFound();
+
+        if (image is not null)
+        {
+            var fileName = Path.GetFileName(image.Url);
+            var webRootPath = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+            var filePath = Path.Combine(webRootPath, "uploads", "resources", fileName);
+            if (System.IO.File.Exists(filePath))
+            {
+                System.IO.File.Delete(filePath);
+            }
+        }
+
+        return NoContent();
+    }
 }
 
